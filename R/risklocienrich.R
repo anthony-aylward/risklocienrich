@@ -60,7 +60,6 @@ risk_loci_enrichment_test <- function(
     ld_threshold = 0.5,
     ntimes = 50
 ) {
-  data(ebicat37)
   loci_by_trait <- lapply(
     setNames(traits, traits),
     function(trait) {
