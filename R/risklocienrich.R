@@ -85,7 +85,7 @@ snps_to_boundaries <- function(snps, ld_threshold = 0.5, population = "EUR") {
     lead_snp <- snps[["rsID"]][snps[["is_query_snp"]] == 1]
     rsids <- ldmat[["matrix.r2"]][
       ldmat[["matrix.r2"]][,lead_snp] > ld_threshold,
-      RS_number
+      "RS_number"
     ]
     positions <- start(
       ranges(ebicat37[intersect(getRsids(ebicat37), rsids)])
