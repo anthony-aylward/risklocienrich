@@ -8,6 +8,7 @@
 #' @import GenomicRanges
 #' @import gwascat
 #' @import haploR
+#' @import regioneR
 
 
 
