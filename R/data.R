@@ -9,3 +9,8 @@
 #'
 #' EBI GWAS catalog (GRCh37) from package `gwascat`
 "ebicat37"
+
+#' Population list
+#'
+#' List to convert 1KGP populations to phase 1 superpopulation for haploR
+"pop_list"

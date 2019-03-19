@@ -38,6 +38,64 @@ setdiff_granges <- function(x, ignore_strand = FALSE) {
   }
 }
 
+#' @title SNPs per locus
+#'
+#' @description Collect SNPs at trait associated loci based on LD with lead SNP
+#'
+#' @param trait character, trait to consider
+#' @param ld_threshold numeric, LD threshold for inclusion in a locus
+#' @param population 1KGP population for LD reference
+#' @return list of data frames giving haploR output per locus
+snps_per_locus <- function(trait, ld_threshold = 0.5, population = "EUR") {
+  if (population %in% unique(unlist(pop_list))) {
+    lapply(
+      mcols(subsetByTraits(ebicat37, tr = trait))[["SNPS"]],
+      queryHaploreg,
+      ldThresh = ld_threshold,
+      ldPop = population
+    )
+  } else {
+    lapply(
+      mcols(subsetByTraits(ebicat37, tr = trait))[["SNPS"]],
+      queryHaploreg,
+      ldThresh = ld_threshold - 1,
+      ldPop = pop_list[[population]]
+    )
+  }
+}
+
+#' @title SNPS to boundaries
+#'
+#' @description conver a vector of SNPS to boundaries
+#'
+#' @param snps vector of SNPs at a locus
+#' @param population 1KGP population for LD reference
+#' @return \describe{
+#'   \item{chr}{chromosome of the locus}
+#'   \item{start}{start position of the locus}
+#'   \item{end}{end position of the locus}
+#' }
+snps_to_boundaries <- function(snps, ld_threshold = 0.5, population = "EUR") {
+  if (population %in% unique(unlist(pop_list))) {
+    positions <- start(
+      ranges(ebicat37[intersect(getRsids(ebicat37), snps[["rsID"]])])
+    )
+  } else {
+    ldmat <- LDlink.LDmatrix(snps[["rsID"]], population = population)
+    lead_snp <- snps[["rsID"]][snps[["is_query_snp"]] == 1]
+    rsids <- ldmat[["matrix.r2"]][
+      ldmat[["matrix.r2"]][,lead_snp] > ld_threshold,
+      RS_number
+    ]
+    positions <- start(
+      ranges(ebicat37[intersect(getRsids(ebicat37), rsids)])
+    )
+  }
+  start <- min(positions)
+  end <- max(positions)
+  list(chr = unique(snps[["chr"]]), start = start, end = end)
+}
+
 #' @title Risk Loci Enrichment Test
 #'
 #' @description test regions for enrichment with disease risk loci
@@ -64,20 +122,13 @@ risk_loci_enrichment_test <- function(
     setNames(traits, traits),
     function(trait) {
       loci_boundaries <- lapply(
-        lapply(
-          mcols(subsetByTraits(ebicat37, tr = trait))[["SNPS"]],
-          queryHaploreg,
-          ldThresh = ld_threshold,
-          ldPop = population
+        snps_per_locus(
+          trait,
+          ld_threshold = ld_threshold,
+          population = population
         ),
-        function(snps) {
-          positions <- start(
-            ranges(ebicat37[intersect(getRsids(ebicat37), snps[["rsID"]])])
-          )
-          start <- min(positions)
-          end <- max(positions)
-          list(chr = unique(snps[["chr"]]), start = start, end = end)
-        }
+        snps_to_boundaries,
+        population = population
       )
       chr <- as.character(
         sapply(loci_boundaries, function(locus) locus[["chr"]])
